@@ -1,0 +1,41 @@
+:root {
+    --primary: #2c3e50;
+    --secondary: #3498db;
+    --success: #27ae60;
+    --warning: #f39c12;
+    --danger: #c0392b;
+    --light: #ecf0f1;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+body { display: flex; height: 100vh; background: #f4f7f6; overflow: hidden; }
+
+aside { width: 260px; background: var(--primary); color: white; display: flex; flex-direction: column; }
+.logo { padding: 20px; font-weight: bold; text-align: center; background: #1a252f; font-size: 1.1rem; }
+aside nav button { width: 100%; padding: 15px 20px; border: none; background: none; color: #bdc3c7; text-align: left; cursor: pointer; font-size: 0.95rem; transition: 0.3s; }
+aside nav button:hover, aside nav button.active { background: #34495e; color: white; border-left: 4px solid var(--secondary); }
+
+main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+header { background: white; padding: 20px 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+header h1 { font-size: 1.3rem; color: var(--primary); }
+
+.content-container { flex: 1; padding: 25px; overflow-y: auto; }
+.card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
+.card h3 { margin-bottom: 15px; color: var(--primary); border-bottom: 2px solid var(--light); padding-bottom: 8px; }
+
+input, select { padding: 10px; margin: 5px 0 15px 0; width: 100%; border: 1px solid #ddd; border-radius: 4px; }
+button.btn { background: var(--secondary); color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+button.btn:hover { opacity: 0.9; }
+button.btn-danger { background: var(--danger); }
+button.btn-success { background: var(--success); }
+button.btn-warning { background: var(--warning); color: #fff; }
+
+.alert-banner { background: var(--warning); color: white; padding: 15px; display: none; text-align: center; font-weight: bold; position: absolute; width: 100%; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+
+table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; border-radius: 6px; overflow: hidden; }
+th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--light); font-size: 0.9rem; }
+th { background-color: #f8f9fa; color: var(--primary); }
+.badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; }
+.badge-success { background: #e8f8f5; color: var(--success); }
+.badge-danger { background: #fdedec; color: var(--danger); }
+.badge-warning { background: #fef9e7; color: var(--warning); }
