@@ -1,8 +1,3 @@
--- ================================================
--- 1. CRIAÇÃO DAS TABELAS
--- ================================================
-
--- Tabela de Livros (Acervo)
 CREATE TABLE livros (
     id VARCHAR(10) PRIMARY KEY,
     titulo VARCHAR(255) NOT NULL,
@@ -11,13 +6,12 @@ CREATE TABLE livros (
     data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabela de Empréstimos (Com Série e Cursos: Administração, Agricultura, Desenvolvimento de Sistemas e Enfermagem)
 CREATE TABLE emprestimos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     livro_id VARCHAR(10) NOT NULL,
     nome_pessoa VARCHAR(255) NOT NULL,
-    serie VARCHAR(20) NOT NULL, -- Ex: '1º Ano', '2º Ano', '3º Ano'
-    curso VARCHAR(50) NOT NULL, -- Ex: 'Administração', 'Agricultura', 'Desenvolvimento de Sistemas', 'Enfermagem'
+    serie VARCHAR(20) NOT NULL,
+    curso VARCHAR(50) NOT NULL,
     data_emprestimo DATE NOT NULL,
     data_limite DATE NOT NULL,
     data_devolucao DATE NULL,
@@ -26,7 +20,6 @@ CREATE TABLE emprestimos (
     FOREIGN KEY (livro_id) REFERENCES livros(id) ON DELETE CASCADE
 );
 
--- Tabela de Fila de Espera (Reservas)
 CREATE TABLE reservas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     livro_id VARCHAR(10) NOT NULL,
@@ -38,52 +31,12 @@ CREATE TABLE reservas (
     FOREIGN KEY (livro_id) REFERENCES livros(id) ON DELETE CASCADE
 );
 
--- ================================================
--- 2. INSERÇÃO DE DADOS EXEMPLO
--- ================================================
-
--- Inserindo livros no acervo
 INSERT INTO livros (id, titulo, autor, status) VALUES
 ('LIV-001', 'Dom Casmurro', 'Machado de Assis', 'emprestado'),
-('LIV-002', 'O Cortiço', 'Aluísio Azevedo', 'disponivel'),
-('LIV-003', 'Capitães da Areia', 'Jorge Amado', 'emprestado'),
-('LIV-004', 'Anatomia Humana', 'Sobotta', 'emprestado');
+('LIV-002', 'Anatomia Humana', 'Sobotta', 'disponivel');
 
--- Registrando empréstimos com Série e Curso (Incluindo Enfermagem)
 INSERT INTO emprestimos (livro_id, nome_pessoa, serie, curso, data_emprestimo, data_limite) VALUES
-('LIV-001', 'João Silva', '2º Ano', 'Desenvolvimento de Sistemas', '2026-08-10', '2026-08-24'),
-('LIV-003', 'Maria Oliveira', '3º Ano', 'Administração', '2026-08-20', '2026-09-03'),
-('LIV-004', 'Camila Santos', '1º Ano', 'Enfermagem', '2026-08-15', '2026-08-29');
+('LIV-001', 'Fernanda Lima', '1º Ano', 'Enfermagem', '2026-08-10', '2026-08-24');
 
--- Registrando fila de espera
 INSERT INTO reservas (livro_id, nome_pessoa, serie, curso, posicao_fila) VALUES
-('LIV-001', 'Carlos Eduardo', '1º Ano', 'Agricultura', 1),
-('LIV-001', 'Ana Souza', '2º Ano', 'Enfermagem', 2);
-
--- ================================================
--- 3. CONSULTAS ÚTEIS (EXEMPLOS)
--- ================================================
-
--- Consulta 1: Buscar livros por título ou autor
-SELECT id, titulo, autor, status 
-FROM livros 
-WHERE titulo LIKE '%Anatomia%' OR autor LIKE '%Sobotta%';
-
--- Consulta 2: Listar empréstimos com alunos, série, curso e dias de atraso
-SELECT 
-    e.id,
-    l.titulo,
-    e.nome_pessoa,
-    e.serie,
-    e.curso,
-    e.data_limite,
-    DATEDIFF(CURRENT_DATE, e.data_limite) AS dias_atraso
-FROM emprestimos e
-JOIN livros l ON e.livro_id = l.id
-WHERE e.data_devolucao IS NULL AND e.data_limite < CURRENT_DATE;
-
--- Consulta 3: Consultar fila de espera de um livro
-SELECT posicao_fila, nome_pessoa, serie, curso, data_reserva
-FROM reservas
-WHERE livro_id = 'LIV-001'
-ORDER BY posicao_fila ASC;
+('LIV-001', 'Lucas Gabriel', '2º Ano', 'Desenvolvimento de Sistemas', 1);

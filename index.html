@@ -3,44 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Biblioteca CEEP</title>
+    <title>Sistema de Biblioteca - CEEP</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
-    <div class="app-layout">
-        <!-- Barra Lateral -->
-        <aside class="sidebar">
-            <div class="brand">
-                <i class="fa-solid fa-book-open"></i>
-                <span>Biblioteca CEEP</span>
-            </div>
-            <nav class="nav-menu" id="menu">
-                <button class="nav-item active" onclick="switchTab('catalogacao')">
-                    <i class="fa-solid fa-plus-circle"></i> 1. Catalogação
-                </button>
-                <button class="nav-item" onclick="switchTab('emprestimo')">
-                    <i class="fa-solid fa-hand-holding"></i> 2. Empréstimos
-                </button>
-                <button class="nav-item" onclick="switchTab('opac')">
-                    <i class="fa-solid fa-magnifying-glass"></i> 3. Consulta OPAC
-                </button>
-                <button class="nav-item" onclick="switchTab('reservasfila')">
-                    <i class="fa-solid fa-list-ol"></i> 4. Fila de Espera
-                </button>
-            </nav>
-        </aside>
+    <div id="sidebar">
+        <h2>Biblioteca CEEP</h2>
+        <div id="menu">
+            <div class="nav-item active" onclick="switchTab('catalogacao')">1. Catalogação de Livros</div>
+            <div class="nav-item" onclick="switchTab('emprestimo')">2. Circulação e Empréstimos</div>
+            <div class="nav-item" onclick="switchTab('opac')">3. Pesquisa OPAC</div>
+            <div class="nav-item" onclick="switchTab('reservasfila')">4. Fila de Espera</div>
+        </div>
+    </div>
 
-        <!-- Área Princial -->
-        <div class="main-wrapper">
-            <header class="top-header">
-                <h1 id="headerTitle">Sistema de Biblioteca</h1>
-            </header>
+    <div id="main-content">
+        <header>
+            <h1 id="headerTitle">1. Catalogação de Livros</h1>
+        </header>
 
-            <main class="content-container" id="content">
-                <!-- O conteúdo das abas é injetado via JavaScript -->
-            </main>
+        <div id="content">
+            <!-- Conteúdo carregado via JavaScript -->
         </div>
     </div>
 

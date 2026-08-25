@@ -1,15 +1,12 @@
-// Banco de Dados Simples (Carrega do localStorage ou inicia vazio)
 let db = JSON.parse(localStorage.getItem('biblioteca_ceep_db')) || {
     livros: [],
     reservas: {}
 };
 
-// Salva o estado atual no navegador
 function salvarBanco() {
     localStorage.setItem('biblioteca_ceep_db', JSON.stringify(db));
 }
 
-// Navegação entre as Abas
 function switchTab(tabId) {
     const abaChave = tabId ? tabId.toLowerCase() : 'catalogacao';
 
@@ -62,7 +59,6 @@ function switchTab(tabId) {
         content.innerHTML = `
             <div class="card">
                 <h3>Registrar Empréstimo Manual (Prazo de 14 dias)</h3>
-                
                 <label>Selecione o Livro:</label>
                 <select id="circLivro">
                     <option value="">Selecione o Livro Disponível</option>
@@ -137,7 +133,6 @@ function switchTab(tabId) {
     }
 }
 
-// Funções Auxiliares de Data
 function converterDataParaObjeto(dataStr) {
     if (!dataStr) return null;
     let partes = dataStr.split('/');
@@ -159,10 +154,8 @@ function calcularDiferencaDias(dataInicio, dataFim) {
 function calcularMultaEDiasAtraso(dataLimiteStr) {
     let hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
-    
     let dataLimite = converterDataParaObjeto(dataLimiteStr);
     if (!dataLimite) return { diasAtraso: 0, valorMulta: 0, emAtraso: false };
-
     dataLimite.setHours(0, 0, 0, 0);
 
     if (hoje > dataLimite) {
@@ -174,7 +167,6 @@ function calcularMultaEDiasAtraso(dataLimiteStr) {
     return { diasAtraso: 0, valorMulta: 0, emAtraso: false };
 }
 
-// Catalogação
 function cadastrarLivro() {
     let titulo = document.getElementById('catTitulo').value.trim();
     let autor = document.getElementById('catAutor').value.trim();
@@ -219,7 +211,6 @@ function atualizarAcervo() {
     `).join('') || `<tr><td colspan="5" style="text-align:center; color:#7f8c8d;">Nenhum livro cadastrado no acervo.</td></tr>`;
 }
 
-// Circulação Manual
 function realizarEmprestimoManual() {
     let livroId = document.getElementById('circLivro').value;
     let nomePessoa = document.getElementById('circNomePessoa').value.trim();
@@ -228,7 +219,6 @@ function realizarEmprestimoManual() {
     let dataEmprestimoStr = document.getElementById('circData').value.trim();
 
     let livro = db.livros.find(l => l.id === livroId);
-
     if (!livro) { alert("Selecione um livro válido!"); return; }
     if (!nomePessoa) { alert("Digite o nome da pessoa!"); return; }
 
@@ -274,14 +264,14 @@ function realizarDevolucao(livroId) {
         livro.dataEmprestimo = hojeStr;
         livro.dataLimite = proximoLimiteStr;
         livro.multaPaga = false;
-        alert(`Livro devolvido, mas repassado automaticamente para a próxima pessoa da fila: ${proximoNome} (Prazo: ${proximoLimiteStr})!`);
+        alert(`Livro devolvido e repassado para: ${proximoNome} (Prazo: ${proximoLimiteStr})!`);
     } else {
         livro.status = "disponivel";
         livro.emprestadoPara = null;
         livro.dataEmprestimo = null;
         livro.dataLimite = null;
         livro.multaPaga = false;
-        alert("Devolução registrada com sucesso! Livro disponível novamente.");
+        alert("Devolução registrada com sucesso!");
     }
     
     salvarBanco();
@@ -311,7 +301,6 @@ function atualizarCirculation() {
     }).join('') || `<tr><td colspan="5" style="text-align:center; color:#7f8c8d;">Nenhum empréstimo ativo no momento.</td></tr>`;
 }
 
-// OPAC
 function buscarOpac() {
     let termo = (document.getElementById('opacBusca')?.value || "").toLowerCase();
     let resDiv = document.getElementById('opacResultados');
@@ -334,11 +323,11 @@ function buscarOpac() {
 
 function entrarNaFilaOPAC(livroId) {
     let nome = prompt("Digite seu nome completo:");
-    let serie = prompt("Digite sua série (Ex: 1º Ano, 2º Ano, 3º Ano):");
-    let curso = prompt("Digite seu curso (Ex: Administração, Agricultura, Desenvolvimento de Sistemas, Enfermagem):");
+    let serie = prompt("Digite sua série (1º Ano, 2º Ano, 3º Ano):");
+    let curso = prompt("Digite seu curso (Administração, Agricultura, Desenvolvimento de Sistemas, Enfermagem):");
 
     if (!nome || !serie || !curso) {
-        alert("Preencha todas as informações para entrar na fila!");
+        alert("Preencha todas as informações!");
         return;
     }
 
@@ -352,10 +341,9 @@ function entrarNaFilaOPAC(livroId) {
 
     db.reservas[livroId].push(informacaoCompleta);
     salvarBanco();
-    alert(`Reserva efetuada com sucesso! Você é o nº ${db.reservas[livroId].length} na fila.`);
+    alert(`Reserva efetuada com sucesso! Posição na fila: ${db.reservas[livroId].length}`);
 }
 
-// Fila de Espera
 function atualizarFila() {
     let tFila = document.getElementById('tabelaFila');
     if (!tFila) return;
@@ -372,5 +360,4 @@ function atualizarFila() {
     }).join('') || `<tr><td colspan="2" style="text-align:center; color:#7f8c8d;">Nenhuma fila de espera ativa.</td></tr>`;
 }
 
-// Inicializar na primeira aba
 window.onload = () => switchTab('catalogacao');
