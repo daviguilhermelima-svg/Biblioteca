@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biblioteca CEEP</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="sidebar">
+        <h2>Biblioteca CEEP</h2>
+        <div id="menu">
+            <div class="nav-item active" onclick="switchTab('catalogacao')">1. Catalogação de Livros</div>
+            <div class="nav-item" onclick="switchTab('emprestimo')">2. Circulação e Empréstimos</div>
+            <div class="nav-item" onclick="switchTab('opac')">3. Pesquisa OPAC</div>
+            <div class="nav-item" onclick="switchTab('reservasfila')">4. Fila de Espera</div>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <header>
+            <h1 id="headerTitle">1. Catalogação de Livros</h1>
+        </header>
+
+        <div id="content"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
