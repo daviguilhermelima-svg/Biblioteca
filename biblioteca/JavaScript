@@ -1,0 +1,367 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+// SUAS CHAVES DO FIREBASE
+const firebaseConfig = {
+    apiKey: "SUA_API_KEY",
+    authDomain: "seu-projeto.firebaseapp.com",
+    projectId: "seu-projeto-id",
+    storageBucket: "seu-projeto.appspot.com",
+    messagingSenderId: "123456789",
+    appId: "1:123456789:web:abcdef"
+};
+
+let dbFirestore = null;
+
+let db = {
+    livros: [],
+    reservas: {}
+};
+
+let abaAtual = 'catalogacao';
+
+// Inicialização segura do Firebase com Try/Catch
+try {
+    const app = initializeApp(firebaseConfig);
+    dbFirestore = getFirestore(app);
+
+    // Escuta coleção de livros
+    onSnapshot(collection(dbFirestore, "livros"), (snapshot) => {
+        db.livros = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderizarAba();
+    }, (error) => {
+        console.warn("Firestore (livros): Trabalhando em modo offline/erro.", error);
+    });
+
+    // Escuta coleção de reservas
+    onSnapshot(collection(dbFirestore, "reservas"), (snapshot) => {
+        db.reservas = {};
+        snapshot.docs.forEach(d => {
+            db.reservas[d.id] = d.data().fila || [];
+        });
+        renderizarAba();
+    }, (error) => {
+        console.warn("Firestore (reservas): Trabalhando em modo offline/erro.", error);
+    });
+} catch (error) {
+    console.error("Firebase não inicializado. Verifique as chaves em firebaseConfig.", error);
+}
+
+// Vinculação global obrigatória para o clique HTML funcionar
+window.switchTab = function(tabId) {
+    abaAtual = tabId ? tabId.toLowerCase() : 'catalogacao';
+    renderizarAba();
+};
+
+function renderizarAba() {
+    document.querySelectorAll('#menu .nav-item').forEach(b => {
+        b.classList.remove('active');
+        if (b.getAttribute('onclick') && b.getAttribute('onclick').toLowerCase().includes(abaAtual)) {
+            b.classList.add('active');
+        }
+    });
+
+    const content = document.getElementById('content');
+    if (!content) return;
+
+    const titles = {
+        'catalogacao': `1. Catalogação de Livros (${db.livros.length} Cadastrados)`,
+        'emprestimo': '2. Registro Manual de Empréstimos',
+        'opac': '3. Pesquisa OPAC (Consulta Online)',
+        'reservasfila': '4. Fila de Espera e Reservas'
+    };
+
+    const headerTitle = document.getElementById('headerTitle');
+    if (headerTitle) {
+        headerTitle.innerText = titles[abaAtual] || 'Sistema de Biblioteca';
+    }
+
+    if (abaAtual === 'catalogacao') {
+        content.innerHTML = `
+            <div class="card">
+                <h3>Cadastrar Novo Livro</h3>
+                <input type="text" id="catTitulo" placeholder="Título do Livro">
+                <input type="text" id="catAutor" placeholder="Nome do Autor">
+                <button class="btn btn-success" onclick="cadastrarLivro()">Cadastrar no Acervo</button>
+            </div>
+            <div class="card">
+                <h3>Acervo da Biblioteca CEEP (${db.livros.length} Livros)</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Cód</th>
+                            <th>Título / Autor</th>
+                            <th>Status</th>
+                            <th>Emprestado Para</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaAcervo"></tbody>
+                </table>
+            </div>
+        `;
+        atualizarAcervo();
+    } else if (abaAtual === 'emprestimo') {
+        content.innerHTML = `
+            <div class="card">
+                <h3>Registrar Empréstimo Manual (Prazo de 14 dias)</h3>
+                <label>Selecione o Livro:</label>
+                <select id="circLivro">
+                    <option value="">Selecione o Livro Disponível</option>
+                    ${db.livros.filter(l => l.status === 'disponivel').map(l => `<option value="${l.id}">${l.id} - ${l.titulo} (${l.autor})</option>`).join('')}
+                </select>
+
+                <label>Nome do Aluno:</label>
+                <input type="text" id="circNomePessoa" placeholder="Digite o nome completo do aluno">
+
+                <label>Série:</label>
+                <select id="circSerie">
+                    <option value="1º Ano">1º Ano</option>
+                    <option value="2º Ano">2º Ano</option>
+                    <option value="3º Ano">3º Ano</option>
+                </select>
+
+                <label>Curso:</label>
+                <select id="circCurso">
+                    <option value="Administração">Administração</option>
+                    <option value="Agricultura">Agricultura</option>
+                    <option value="Desenvolvimento de Sistemas">Desenvolvimento de Sistemas</option>
+                    <option value="Enfermagem">Enfermagem</option>
+                </select>
+
+                <label>Data de Retirada:</label>
+                <input type="text" id="circData" placeholder="Ex: 25/08/2026" value="${new Date().toLocaleDateString('pt-BR')}">
+
+                <button class="btn btn-success" style="margin-top: 10px;" onclick="realizarEmprestimoManual()">Concluir Empréstimo</button>
+            </div>
+            <div class="card">
+                <h3>Livros Atualmente Emprestados</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Livro (Autor)</th>
+                            <th>Aluno / Série e Curso</th>
+                            <th>Retirada / Limite</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaEmprestados"></tbody>
+                </table>
+            </div>
+        `;
+        atualizarCirculation();
+    } else if (abaAtual === 'opac') {
+        content.innerHTML = `
+            <div class="card">
+                <h3>Vitrine Online da Biblioteca CEEP</h3>
+                <input type="text" id="opacBusca" placeholder="Digite o título ou autor para pesquisar...">
+                <div id="opacResultados" style="margin-top: 15px;"></div>
+            </div>
+        `;
+        const campoBusca = document.getElementById('opacBusca');
+        if (campoBusca) {
+            campoBusca.addEventListener('keyup', window.buscarOpac);
+        }
+        window.buscarOpac();
+    } else if (abaAtual === 'reservasfila') {
+        content.innerHTML = `
+            <div class="card">
+                <h3>Fila de Espera</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Livro Indisponível</th>
+                            <th>Pessoas na Fila</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaFila"></tbody>
+                </table>
+            </div>
+        `;
+        atualizarFila();
+    }
+}
+
+window.cadastrarLivro = async function() {
+    const tituloEl = document.getElementById('catTitulo');
+    const autorEl = document.getElementById('catAutor');
+    
+    let titulo = tituloEl ? tituloEl.value.trim() : '';
+    let autor = autorEl ? autorEl.value.trim() : '';
+
+    if (!titulo || !autor) { alert("Preencha todos os campos!"); return; }
+
+    let novoId = "LIV-" + String(db.livros.length + 1).padStart(3, '0');
+    let novoLivro = { titulo, autor, status: "disponivel", emprestadoPara: null, dataEmprestimo: null, dataLimite: null };
+
+    if (dbFirestore) {
+        try {
+            await setDoc(doc(dbFirestore, "livros", novoId), novoLivro);
+            alert("Livro catalogado no Firebase!");
+        } catch (e) {
+            console.error(e);
+            alert("Erro no Firebase. Verifique as regras de segurança.");
+        }
+    } else {
+        db.livros.push({ id: novoId, ...novoLivro });
+        renderizarAba();
+    }
+};
+
+window.excluirLivro = async function(livroId) {
+    if (confirm(`Excluir o livro ${livroId}?`)) {
+        if (dbFirestore) {
+            try {
+                await deleteDoc(doc(dbFirestore, "livros", livroId));
+                await deleteDoc(doc(dbFirestore, "reservas", livroId));
+            } catch (e) { console.error(e); }
+        } else {
+            db.livros = db.livros.filter(l => l.id !== livroId);
+            renderizarAba();
+        }
+    }
+};
+
+window.realizarEmprestimoManual = async function() {
+    let livroId = document.getElementById('circLivro').value;
+    let nomePessoa = document.getElementById('circNomePessoa').value.trim();
+    let serie = document.getElementById('circSerie').value;
+    let curso = document.getElementById('circCurso').value;
+    let dataEmprestimoStr = document.getElementById('circData').value.trim();
+
+    if (!livroId || !nomePessoa) { alert("Preencha os campos!"); return; }
+
+    let partes = dataEmprestimoStr.split('/');
+    let dataObj = partes.length === 3 ? new Date(partes[2], partes[1] - 1, partes[0]) : new Date();
+    dataObj.setDate(dataObj.getDate() + 14);
+    let dataLimiteStr = dataObj.toLocaleDateString('pt-BR');
+
+    let dadosAtualizados = {
+        status: "emprestado",
+        emprestadoPara: `${nomePessoa} (${serie} - ${curso})`,
+        dataEmprestimo: dataEmprestimoStr,
+        dataLimite: dataLimiteStr
+    };
+
+    if (dbFirestore) {
+        try {
+            await updateDoc(doc(dbFirestore, "livros", livroId), dadosAtualizados);
+            alert("Empréstimo registrado no Firebase!");
+        } catch (e) { console.error(e); }
+    } else {
+        let l = db.livros.find(item => item.id === livroId);
+        if (l) Object.assign(l, dadosAtualizados);
+        renderizarAba();
+    }
+};
+
+window.realizarDevolucao = async function(livroId) {
+    let filaAtual = db.reservas[livroId] || [];
+
+    if (filaAtual.length > 0) {
+        let proximoNome = filaAtual.shift();
+        let hojeStr = new Date().toLocaleDateString('pt-BR');
+        let hojeObj = new Date();
+        hojeObj.setDate(hojeObj.getDate() + 14);
+        let proximoLimiteStr = hojeObj.toLocaleDateString('pt-BR');
+
+        if (dbFirestore) {
+            await updateDoc(doc(dbFirestore, "livros", livroId), {
+                status: "emprestado",
+                emprestadoPara: proximoNome,
+                dataEmprestimo: hojeStr,
+                dataLimite: proximoLimiteStr
+            });
+            await setDoc(doc(dbFirestore, "reservas", livroId), { fila: filaAtual });
+        }
+    } else {
+        if (dbFirestore) {
+            await updateDoc(doc(dbFirestore, "livros", livroId), {
+                status: "disponivel",
+                emprestadoPara: null,
+                dataEmprestimo: null,
+                dataLimite: null
+            });
+        }
+    }
+};
+
+window.entrarNaFilaOPAC = async function(livroId) {
+    let nome = prompt("Seu nome completo:");
+    let serie = prompt("Série:");
+    let curso = prompt("Curso:");
+
+    if (!nome || !serie || !curso) return;
+
+    let alunoInfo = `${nome} (${serie} - ${curso})`;
+    let filaAtual = db.reservas[livroId] || [];
+
+    if (!filaAtual.includes(alunoInfo)) {
+        filaAtual.push(alunoInfo);
+        if (dbFirestore) {
+            await setDoc(doc(dbFirestore, "reservas", livroId), { fila: filaAtual });
+        }
+    }
+};
+
+function atualizarAcervo() {
+    let tAcervo = document.getElementById('tabelaAcervo');
+    if (!tAcervo) return;
+
+    tAcervo.innerHTML = db.livros.map(l => `
+        <tr>
+            <td><code>${l.id}</code></td>
+            <td><strong>${l.titulo}</strong><br><small>${l.autor}</small></td>
+            <td><span class="badge ${l.status === 'disponivel' ? 'badge-success' : 'badge-danger'}">${l.status}</span></td>
+            <td>${l.emprestadoPara ? `${l.emprestadoPara} (Limite: ${l.dataLimite})` : '-'}</td>
+            <td><button class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="excluirLivro('${l.id}')">Excluir</button></td>
+        </tr>
+    `).join('') || `<tr><td colspan="5" style="text-align:center;">Nenhum livro cadastrado.</td></tr>`;
+}
+
+function atualizarCirculation() {
+    let tEmp = document.getElementById('tabelaEmprestados');
+    if (!tEmp) return;
+
+    tEmp.innerHTML = db.livros.filter(l => l.status === 'emprestado').map(l => `
+        <tr>
+            <td><strong>${l.titulo}</strong><br><small>${l.autor}</small></td>
+            <td>${l.emprestadoPara}</td>
+            <td>Retirada: ${l.dataEmprestimo}<br><small>Limite: ${l.dataLimite}</small></td>
+            <td><button class="btn btn-success" style="padding:6px 12px; font-size:0.8rem;" onclick="realizarDevolucao('${l.id}')">Devolver</button></td>
+        </tr>
+    `).join('') || `<tr><td colspan="5" style="text-align:center;">Nenhum empréstimo ativo.</td></tr>`;
+}
+
+window.buscarOpac = function() {
+    let termo = (document.getElementById('opacBusca')?.value || "").toLowerCase();
+    let resDiv = document.getElementById('opacResultados');
+    if (!resDiv) return;
+
+    let encontrados = db.livros.filter(l => l.titulo.toLowerCase().includes(termo) || l.autor.toLowerCase().includes(termo));
+    resDiv.innerHTML = encontrados.map(l => `
+        <div style="background:var(--bg-main); padding:12px; margin-bottom:8px; border-radius:var(--radius-sm); border: 1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+            <div><strong>${l.titulo}</strong> - ${l.autor}</div>
+            <div>${l.status === 'disponivel' ? '<small style="color:var(--success);">Disponível</small>' : `<button class="btn btn-warning" onclick="entrarNaFilaOPAC('${l.id}')">Entrar na Fila</button>`}</div>
+        </div>
+    `).join('') || '<p>Nenhum livro encontrado.</p>';
+};
+
+function atualizarFila() {
+    let tFila = document.getElementById('tabelaFila');
+    if (!tFila) return;
+
+    tFila.innerHTML = Object.keys(db.reservas).map(lid => {
+        let livro = db.livros.find(l => l.id === lid);
+        let filaNomes = db.reservas[lid].map((n, idx) => `${idx+1}º ${n}`).join(' ➔ ');
+        return `
+            <tr>
+                <td><strong>${livro ? livro.titulo : lid}</strong></td>
+                <td>${filaNomes || 'Fila vazia'}</td>
+            </tr>
+        `;
+    }).join('') || `<tr><td colspan="2" style="text-align:center;">Nenhuma fila de espera ativa.</td></tr>`;
+}
+
+// Renderização inicial garantida logo ao carregar o arquivo
+renderizarAba();
